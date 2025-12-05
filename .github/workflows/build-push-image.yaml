@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 env:
-  AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
   AWS_REGION: "us-east-1"
+  AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   IMAGE_NAME: "stressapp"
 
@@ -31,20 +31,13 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
-    #   - name: Create ECR repository if not exists
-    #     id: create-ecr-repository
-    #     uses: aws-actions/ecr-create-repository@v1
-    #     with:
-    #       repository-name: ${{ env.IMAGE_NAME }}
-
-    #   - name: Build Docker image
-    #     id: build-image
-    #     run: |
-    #       docker build -t ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-
-    #   - name: Push Docker image to ECR
-    #     id: push-image
-    #     run: |
-    #       docker push ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Build Image and Push to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: "test"
+          IMAGE_TAG: latest
+        run: |
+          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} --image-scanning-configuration scanOnPush=true || echo "Repository already exists"
