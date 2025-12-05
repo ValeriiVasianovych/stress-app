@@ -1,0 +1,7 @@
+apiVersion: v2
+name: stressapp-nodejs
+description: A Helm chart for stressapp-nodejs application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+

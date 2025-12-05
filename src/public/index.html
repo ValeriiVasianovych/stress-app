@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <title>Fibonacci Calculator</title>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Fibonacci EKS Cluster Scaling Test</h1>
+        <div class="content-container">
+            <p class="description">This application calculates the Fibonacci sequence in real time. It is used to test the EKS Kubernetes cluster scaling capabilities. Also it collects metrics in Prometheus and displays them using Grafana.</p>
+            <ul class="key-features">
+                <span class="list-title">The purpose of this application is:</span>
+                <li>1. Test the CPU load of the EKS Kubernetes cluster.</li>
+                <li>2. Show cluster scaling using HPA and Cluster Autoscaler.</li>
+                <li>3. Collect metrics in Prometheus and display them in Grafana.</li>
+            </ul>
+        </div>
+        <p class="instructions">
+            To start the calculation, send a GET request to
+            <a href="/api/cpu?index=44" target="_blank">/api/cpu?index=44</a><br>
+            or use curl:<br>
+            <code>curl "localhost:3000/api/cpu?index=44"</code><br><br>
+        </p>
+        <footer class="footer">
+            Developed by <a href="https://github.com/ValeriiVasianovych">Valerii Vasianovych</a>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        function startCalculation() {
+            const indexInput = document.getElementById('fibonacciIndex');
+            const index = parseInt(indexInput.value, 10);
+            
+            if (isNaN(index) || index < 0) {
+                alert('Please enter a valid positive number');
+                return;
+            }
+            calculateFibonacci(index);
+        }
+    </script>
+</body>
+</html>

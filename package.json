@@ -1,0 +1,27 @@
+{
+  "name": "saas-ci-cd",
+  "version": "1.0.0",
+  "description": "",
+  "main": "postcss.config.js",
+  "scripts": {
+    "start": "nodemon src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/ValeriiVasianovych/saas-ci-cd.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://gitlab.com/ValeriiVasianovych/saas-ci-cd/issues"
+  },
+  "homepage": "https://gitlab.com/ValeriiVasianovych/saas-ci-cd#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "nodemon": "^3.1.11",
+    "prom-client": "^15.1.3"
+  }
+}

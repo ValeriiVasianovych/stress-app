@@ -1,0 +1,44 @@
+stages:
+  - stage_validate
+  - stage_build_push
+
+variables:
+  AWS_ACCOUNT_ID: "312211201134"
+  AWS_REGION: "eu-central-1"
+  AWS_IAM_ROLE_ARN: "arn:aws:iam::312211201134:role/gitlab-aws-integration-role"
+  AWS_REGISTRY: "saas/stressapp-nodejs"
+
+image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+
+job validate:
+  stage: stage_validate
+  script:
+    - aws --version
+
+job build_push:
+  stage: stage_build_push
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+  services:
+    - docker:dind
+  before_script:
+    - echo "${GITLAB_OIDC_TOKEN}" > /tmp/web_identity_token
+    - export AWS_WEB_IDENTITY_TOKEN_FILE="/tmp/web_identity_token"
+    - export AWS_ROLE_ARN="${AWS_IAM_ROLE_ARN}"
+
+    - echo "--LOGIN TO AWS ECR--"
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+  script:
+    - echo "--CHECK AWS IDENTITY--"
+    - aws sts get-caller-identity
+    - echo "--BUILD DOCKER IMAGE--"
+    - docker build -t gitlabdockerbuild:latest .
+    - echo "--TAG IMAGE--"
+    - docker tag gitlabdockerbuild:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/${AWS_REGISTRY}:${CI_COMMIT_SHORT_SHA}
+    - echo "--ENSURE REPOSITORY EXISTS--"
+    - aws ecr create-repository --repository-name ${AWS_REGISTRY} --region ${AWS_REGION} --image-scanning-configuration scanOnPush=true || echo "Repository already exists"
+    - echo "--PUSH IMAGE--"
+    - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/${AWS_REGISTRY}:${CI_COMMIT_SHORT_SHA}
