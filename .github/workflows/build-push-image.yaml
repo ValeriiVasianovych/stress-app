@@ -1,0 +1,50 @@
+name: Build and Push StressApp Image to AWS ECR
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+  AWS_REGION: "us-east-1"
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  IMAGE_NAME: "stressapp"
+
+jobs:
+  build-and-push:
+    name: Build and Push to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_IAM_ROLE_ARN }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+    #   - name: Create ECR repository if not exists
+    #     id: create-ecr-repository
+    #     uses: aws-actions/ecr-create-repository@v1
+    #     with:
+    #       repository-name: ${{ env.IMAGE_NAME }}
+
+    #   - name: Build Docker image
+    #     id: build-image
+    #     run: |
+    #       docker build -t ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+
+    #   - name: Push Docker image to ECR
+    #     id: push-image
+    #     run: |
+    #       docker push ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
