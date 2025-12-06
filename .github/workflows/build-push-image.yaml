@@ -46,16 +46,41 @@ jobs:
           ECR_REPOSITORY: "stressapp"
           IMAGE_TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
         run: |
+          echo "ECR_REGISTRY=$ECR_REGISTRY"
+          echo "ECR_REPOSITORY=$ECR_REPOSITORY"
+          echo "IMAGE_TAG=$IMAGE_TAG"
           aws ecr create-repository --repository-name $ECR_REPOSITORY --region ${{ env.AWS_REGION }} --image-scanning-configuration scanOnPush=true || echo "Repository already exists"
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image_uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
           echo "ecr_registry=$ECR_REGISTRY" >> $GITHUB_OUTPUT
+          echo "Built and pushed: $IMAGE_URI"
+      
+      - name: Ensure outputs are set
+        id: ensure-outputs
+        if: always()
+        run: |
+          if [ -z "${{ steps.build-image.outputs.image_uri }}" ]; then
+            ECR_REG="${{ steps.login-ecr.outputs.registry }}"
+            IMG_TAG="${{ steps.increment-git-tag.outputs.git-tag }}"
+            if [ -n "$ECR_REG" ] && [ -n "$IMG_TAG" ]; then
+              echo "image_uri=$ECR_REG/stressapp:$IMG_TAG" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "image_uri=${{ steps.build-image.outputs.image_uri }}" >> $GITHUB_OUTPUT
+          fi
+          
+          if [ -z "${{ steps.build-image.outputs.ecr_registry }}" ]; then
+            echo "ecr_registry=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_OUTPUT
+          else
+            echo "ecr_registry=${{ steps.build-image.outputs.ecr_registry }}" >> $GITHUB_OUTPUT
+          fi
     
     outputs:
       git-tag: ${{ steps.increment-git-tag.outputs.git-tag }}
-      image-uri: ${{ steps.build-image.outputs.image_uri }}
-      ecr-registry: ${{ steps.build-image.outputs.ecr_registry }}
+      image-uri: ${{ steps.ensure-outputs.outputs.image_uri }}
+      ecr-registry: ${{ steps.ensure-outputs.outputs.ecr_registry }}
   send-email:
     name: Send Deployment Notification Email
     runs-on: ubuntu-latest
@@ -74,7 +99,7 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           to: ${{ secrets.MAIL }}
           from: ${{ secrets.MAIL }}
-          subject: GitHub Actions | StressApp Deployment | ${{ needs.build-and-push.outputs.git-tag }} | ${{ needs.build-and-push.result }}
+          subject: GitHub Actions | StressApp ECR Deployment | ${{ needs.build-and-push.outputs.git-tag }} | ${{ needs.build-and-push.result }}
           html_body: |
             <!DOCTYPE html>
             <html>
@@ -88,15 +113,15 @@ jobs:
               </style>
             </head>
             <body>
-              <h1>StressApp Deployment Notification</h1>
+              <h1>Main Workflow Deployment Results</h1>
               <p><strong>Status:</strong> ${{ needs.build-and-push.result == 'success' && 'SUCCESS' || needs.build-and-push.result == 'failure' && 'FAILED' || 'CANCELLED' }}</p>
               <p><strong>Image Tag:</strong> ${{ needs.build-and-push.outputs.git-tag || 'N/A' }}</p>
-              <p><strong>Docker Image URI:</strong> ${{ needs.build-and-push.outputs.image-uri || 'N/A' }}</p>
+              <p><strong>ECR Image URI:</strong> ${{ needs.build-and-push.outputs.image-uri || 'N/A' }}</p>
               <p><strong>AWS Region:</strong> ${{ env.AWS_REGION }}</p>
               <p><strong>ECR Registry:</strong> ${{ needs.build-and-push.outputs.ecr-registry || 'N/A' }}</p>
               <p><strong>Workflow Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View on GitHub</a></p>
               <p><strong>Commit:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}">${{ github.sha }}</a></p>
-              <p>${{ github.event.head_commit.message || 'N/A' }}</p>
+              <p><strong>Commit Message:</strong> ${{ github.event.head_commit.message || 'N/A' }}</p>
               <p><strong>Triggered By:</strong> ${{ github.actor }}</p>
               <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
               <p><strong>Repository:</strong> <a href="${{ github.server_url }}/${{ github.repository }}">${{ github.repository }}</a></p>
