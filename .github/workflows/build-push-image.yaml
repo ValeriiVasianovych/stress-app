@@ -46,15 +46,16 @@ jobs:
           ECR_REPOSITORY: "stressapp"
           IMAGE_TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
         run: |
-          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} --image-scanning-configuration scanOnPush=true || echo "Repository already exists"
-          docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-          echo "image_uri=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+          aws ecr create-repository --repository-name $ECR_REPOSITORY --region ${{ env.AWS_REGION }} --image-scanning-configuration scanOnPush=true || echo "Repository already exists"
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image_uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "ecr_registry=$ECR_REGISTRY" >> $GITHUB_OUTPUT
     
     outputs:
       git-tag: ${{ steps.increment-git-tag.outputs.git-tag }}
       image-uri: ${{ steps.build-image.outputs.image_uri }}
-      ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+      ecr-registry: ${{ steps.build-image.outputs.ecr_registry }}
   send-email:
     name: Send Deployment Notification Email
     runs-on: ubuntu-latest
@@ -79,93 +80,26 @@ jobs:
             <html>
             <head>
               <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; line-height: 1.6; color: #24292e; margin: 0; padding: 0; background-color: #f6f8fa; }
-                .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
-                .content { background: #ffffff; padding: 32px; border: 1px solid #e1e4e8; border-radius: 6px; }
-                .header { border-bottom: 1px solid #e1e4e8; padding-bottom: 16px; margin-bottom: 24px; }
-                .title { font-size: 20px; font-weight: 600; color: #24292e; margin: 0; }
-                .status { display: inline-block; padding: 4px 12px; border-radius: 3px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 24px; }
-                .status-success { background-color: #28a745; color: #ffffff; }
-                .status-failure { background-color: #dc3545; color: #ffffff; }
-                .status-cancelled { background-color: #ffc107; color: #24292e; }
-                .info-row { padding: 12px 0; border-bottom: 1px solid #f1f3f5; }
-                .info-row:last-child { border-bottom: none; }
-                .info-label { font-size: 12px; font-weight: 600; color: #586069; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-                .info-value { font-size: 14px; color: #24292e; word-break: break-all; }
-                .info-value code { background-color: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 13px; }
-                .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e1e4e8; font-size: 12px; color: #586069; }
-                .link { color: #0366d6; text-decoration: none; }
-                .link:hover { text-decoration: underline; }
-                .commit-message { color: #586069; font-size: 13px; margin-top: 4px; }
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; margin: 20px; }
+                h1 { font-size: 18px; margin: 0 0 20px 0; }
+                p { margin: 8px 0; }
+                strong { font-weight: bold; }
+                a { color: #0066cc; }
               </style>
             </head>
             <body>
-              <div class="container">
-                <div class="content">
-                  <div class="header">
-                    <h1 class="title">StressApp Deployment Notification</h1>
-                  </div>
-                  
-                  <div>
-                    <span class="status status-${{ needs.build-and-push.result }}">
-                      ${{ needs.build-and-push.result == 'success' && 'SUCCESS' || needs.build-and-push.result == 'failure' && 'FAILED' || 'CANCELLED' }}
-                    </span>
-                  </div>
-                  
-                  <div class="info-row">
-                    <div class="info-label">Image Tag</div>
-                    <div class="info-value"><code>${{ needs.build-and-push.outputs.git-tag || 'N/A' }}</code></div>
-                  </div>
-                  
-                  <div class="info-row">
-                    <div class="info-label">Docker Image URI</div>
-                    <div class="info-value"><code>${{ needs.build-and-push.outputs.image-uri || 'N/A' }}</code></div>
-                  </div>
-                  
-                  <div class="info-row">
-                    <div class="info-label">AWS Region</div>
-                    <div class="info-value">${{ env.AWS_REGION }}</div>
-                  </div>
-                  
-                  <div class="info-row">
-                    <div class="info-label">ECR Registry</div>
-                    <div class="info-value"><code>${{ needs.build-and-push.outputs.ecr-registry || 'N/A' }}</code></div>
-                  </div>
-                  
-                  <div class="info-row">
-                    <div class="info-label">Workflow Run</div>
-                    <div class="info-value">
-                      <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" class="link">
-                        View on GitHub
-                      </a>
-                    </div>
-                  </div>
-                  
-                  <div class="info-row">
-                    <div class="info-label">Commit</div>
-                    <div class="info-value">
-                      <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" class="link">
-                        <code>${{ github.sha }}</code>
-                      </a>
-                      <div class="commit-message">${{ github.event.head_commit.message || 'N/A' }}</div>
-                    </div>
-                  </div>
-                  
-                  <div class="info-row">
-                    <div class="info-label">Triggered By</div>
-                    <div class="info-value">${{ github.actor }}</div>
-                  </div>
-                  
-                  <div class="info-row">
-                    <div class="info-label">Branch</div>
-                    <div class="info-value">${{ github.ref_name }}</div>
-                  </div>
-                  
-                  <div class="footer">
-                    <p>This is an automated notification from GitHub Actions.</p>
-                    <p>Repository: <a href="${{ github.server_url }}/${{ github.repository }}" class="link">${{ github.repository }}</a></p>
-                  </div>
-                </div>
-              </div>
+              <h1>StressApp Deployment Notification</h1>
+              <p><strong>Status:</strong> ${{ needs.build-and-push.result == 'success' && 'SUCCESS' || needs.build-and-push.result == 'failure' && 'FAILED' || 'CANCELLED' }}</p>
+              <p><strong>Image Tag:</strong> ${{ needs.build-and-push.outputs.git-tag || 'N/A' }}</p>
+              <p><strong>Docker Image URI:</strong> ${{ needs.build-and-push.outputs.image-uri || 'N/A' }}</p>
+              <p><strong>AWS Region:</strong> ${{ env.AWS_REGION }}</p>
+              <p><strong>ECR Registry:</strong> ${{ needs.build-and-push.outputs.ecr-registry || 'N/A' }}</p>
+              <p><strong>Workflow Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View on GitHub</a></p>
+              <p><strong>Commit:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}">${{ github.sha }}</a></p>
+              <p>${{ github.event.head_commit.message || 'N/A' }}</p>
+              <p><strong>Triggered By:</strong> ${{ github.actor }}</p>
+              <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
+              <p><strong>Repository:</strong> <a href="${{ github.server_url }}/${{ github.repository }}">${{ github.repository }}</a></p>
+              <p style="margin-top: 20px; font-size: 12px; color: #666;">This is an automated notification from GitHub Actions.</p>
             </body>
             </html>
