@@ -59,6 +59,8 @@ jobs:
         with:
           server_address: ${{ secrets.MAIL_HOST }}
           server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL }}
+          password: ${{ secrets.MAIL_PASSWORD }}
           subject: Github Actions job result
           to: ${{ secrets.MAIL }}
           from: ${{ secrets.MAIL }}
