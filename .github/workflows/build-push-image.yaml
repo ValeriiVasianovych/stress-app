@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  AWS_REGION: "us-east-1"
+  AWS_REGION: "eu-central-1"
   AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   ECR_REPOSITORY: "stressapp"
@@ -89,12 +89,11 @@ jobs:
             <body>
               <h1>StressApp Deployment Notification</h1>
               <p><strong>Status:</strong> <span style="color: ${{ needs.build-and-push.result == 'success' && 'green' || needs.build-and-push.result == 'failure' && 'red' || 'gray' }}; font-weight: bold;">${{ needs.build-and-push.result == 'success' && 'SUCCESS' || needs.build-and-push.result == 'failure' && 'FAILED' || 'CANCELLED' }}</span></p>
-              <p><strong>Image Tag:</strong> ${{ needs.build-and-push.outputs.git-tag || 'N/A' }}</p>
-              <p><strong>Docker Image URI:</strong> ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.build-and-push.outputs.git-tag }}</p>
               <p><strong>AWS Region:</strong> ${{ env.AWS_REGION }}</p>
+              <p><strong>ECR Image URI:</strong> ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.build-and-push.outputs.git-tag }}</p>
               <p><strong>Workflow Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View on GitHub</a></p>
               <p><strong>Commit:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}">${{ github.sha }}</a></p>
-              <p><strong>Commit Message:</strong> ${{ github.event.head_commit.message || 'N/A' }}</p>
+              <p><strong>Commit Message:</strong> "${{ github.event.head_commit.message }}"</p>
               <p><strong>Triggered By:</strong> ${{ github.actor }}</p>
               <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
               <p><strong>Repository:</strong> <a href="${{ github.server_url }}/${{ github.repository }}">${{ github.repository }}</a></p>
