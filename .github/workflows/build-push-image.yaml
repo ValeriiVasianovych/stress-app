@@ -15,7 +15,7 @@ env:
   ECR_REPOSITORY: "stressapp"
 
 jobs:
-  build-and-push:
+  build-test-and-push:
     name: Build and Push to ECR
     runs-on: ubuntu-latest
 
@@ -36,11 +36,17 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
       - name: Automatic Tagging of Releases
         id: increment-git-tag
         run: |
           bash ./build/git_update.sh -v patch
-      - name: Build Image and Push to ECR
+
+      - name: Build Docker Image
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -48,8 +54,24 @@ jobs:
         run: |
           aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} --image-scanning-configuration scanOnPush=true || echo "Repository already exists"
           docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
           echo "image_uri=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.build-image.outputs.image_uri }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          trivyignores: '.trivyignore'
+      - name: Push Image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
+        run: |
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
     
     outputs:
       git-tag: ${{ steps.increment-git-tag.outputs.git-tag }}
@@ -58,12 +80,11 @@ jobs:
   send-email:
     name: Send Deployment Notification Email
     runs-on: ubuntu-latest
-    needs: [build-and-push]
+    needs: [build-test-and-push]
     if: always()
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
       - name: Send Deployment Results
         uses: dawidd6/action-send-mail@v6
         with:
@@ -73,7 +94,7 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           to: ${{ secrets.MAIL }}
           from: ${{ secrets.MAIL }}
-          subject: GitHub Actions | StressApp Deployment | ${{ needs.build-and-push.outputs.git-tag }} | ${{ needs.build-and-push.result }}
+          subject: GitHub Actions | StressApp Deployment | ${{ needs.build-test-and-push.outputs.git-tag }} | ${{ needs.build-test-and-push.result }}
           html_body: |
             <!DOCTYPE html>
             <html>
@@ -88,9 +109,9 @@ jobs:
             </head>
             <body>
               <h1>StressApp Deployment Notification</h1>
-              <p><strong>Status:</strong> <span style="color: ${{ needs.build-and-push.result == 'success' && 'green' || needs.build-and-push.result == 'failure' && 'red' || 'gray' }}; font-weight: bold;">${{ needs.build-and-push.result == 'success' && 'SUCCESS' || needs.build-and-push.result == 'failure' && 'FAILED' || 'CANCELLED' }}</span></p>
+              <p><strong>Status:</strong> <span style="color: ${{ needs.build-test-and-push.result == 'success' && 'green' || needs.build-test-and-push.result == 'failure' && 'red' || 'gray' }}; font-weight: bold;">${{ needs.build-test-and-push.result == 'success' && 'SUCCESS' || needs.build-test-and-push.result == 'failure' && 'FAILED' || 'CANCELLED' }}</span></p>
               <p><strong>AWS Region:</strong> ${{ env.AWS_REGION }}</p>
-              <p><strong>ECR Image URI:</strong> ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.build-and-push.outputs.git-tag }}</p>
+              <p><strong>ECR Image URI:</strong> ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.build-test-and-push.outputs.git-tag }}</p>
               <p><strong>Workflow Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View on GitHub</a></p>
               <p><strong>Commit:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}">${{ github.sha }}</a></p>
               <p><strong>Commit Message:</strong> "${{ github.event.head_commit.message }}"</p>
