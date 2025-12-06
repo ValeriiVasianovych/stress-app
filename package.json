@@ -20,7 +20,9 @@
   },
   "homepage": "https://gitlab.com/ValeriiVasianovych/saas-ci-cd#readme",
   "dependencies": {
+    "body-parser": "^2.2.1",
     "express": "^5.1.0",
+    "glob": "^10.5.0",
     "nodemon": "^3.1.11",
     "prom-client": "^15.1.3"
   }
