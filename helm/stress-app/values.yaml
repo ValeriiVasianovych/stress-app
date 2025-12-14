@@ -108,3 +108,19 @@ readinessProbe:
   timeoutSeconds: 3
   failureThreshold: 3
 
+serviceMonitor:
+  # Enable ServiceMonitor for Prometheus Operator
+  enabled: true
+  # Scrape interval
+  interval: 30s
+  # Scrape timeout
+  scrapeTimeout: 10s
+  # Additional labels for ServiceMonitor (useful for Prometheus selector)
+  additionalLabels: {}
+    # prometheus: kube-prometheus
+    # release: prometheus
+  # Relabelings for targets
+  relabelings: []
+  # Metric relabelings
+  metricRelabelings: []
+
