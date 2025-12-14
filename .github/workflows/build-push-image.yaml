@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  AWS_REGION: "eu-central-1"
+  AWS_REGION: "us-east-1"
   AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   ECR_REPOSITORY: "stressapp"
