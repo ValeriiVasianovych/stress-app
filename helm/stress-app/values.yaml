@@ -9,6 +9,9 @@ image:
   repository: "valeriivasianovych/stressapp"
   pullPolicy: IfNotPresent
   tag: "v1"
+  # Full image URI (e.g., 312211201134.dkr.ecr.eu-central-1.amazonaws.com/stressapp:v0.1.13)
+  # If provided, this will be used instead of repository:tag
+  uri: ""
 
 imagePullSecrets: []
 nameOverride: ""
@@ -21,7 +24,10 @@ serviceAccount:
   annotations: {}
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
-  name: ""
+  name: "ecr-auth-access"
+  # IAM Role ARN for ECR authentication (IRSA)
+  # e.g., arn:aws:iam::312211201134:role/incubator-ecr-auth-role-dev
+  roleArn: ""
 
 podAnnotations: {}
 

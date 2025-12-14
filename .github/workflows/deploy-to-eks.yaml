@@ -1,0 +1,65 @@
+name: Deploy StressApp to EKS
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: The region to deploy to
+        required: true
+        default: "us-east-1"
+      aws_ecr_auth_role_arn:
+        description: The ARN of the ECR authentication role
+        required: true
+      image_uri:
+        description: The URI of the image to deploy
+        required: true
+      cluster_name:
+        description: The name of the cluster to deploy to
+        required: true
+      namespace:
+        description: The namespace to deploy to
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+  EKS_CLUSTER_NAME: ${{ inputs.cluster_name }}
+  AWS_REGION: ${{ inputs.region }}
+  EKS_NAMESPACE: ${{ inputs.namespace }}
+
+jobs:
+  deploy:
+    name: Deploy StressApp to EKS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_IAM_ROLE_ARN }}
+
+      - name: Configure kubectl for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Deploy StressApp with Helm
+        run: |
+          helm upgrade --install stress-app ./helm/stress-app \
+            --create-namespace \
+            --namespace ${{ env.EKS_NAMESPACE }} \
+            --set serviceAccount.roleArn=${{ inputs.aws_ecr_auth_role_arn }} \
+            --set image.uri=${{ inputs.image_uri }}
