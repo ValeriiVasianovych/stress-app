@@ -108,7 +108,6 @@ jobs:
               <p><strong>Namespace:</strong> ${{ inputs.namespace }}</p>
               <p><strong>AWS Region:</strong> ${{ inputs.region }}</p>
               <p><strong>Image URI:</strong> ${{ inputs.image_uri }}</p>
-              <p><strong>ECR Auth Role ARN:</strong> ${{ inputs.aws_ecr_auth_role_arn }}</p>
               <p><strong>Workflow Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View on GitHub</a></p>
               <p><strong>Triggered By:</strong> ${{ github.actor }}</p>
               <p><strong>Repository:</strong> <a href="${{ github.server_url }}/${{ github.repository }}">${{ github.repository }}</a></p>
