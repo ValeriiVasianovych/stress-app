@@ -57,11 +57,7 @@ jobs:
 
       - name: Configure kubectl for EKS
         run: |
-          mkdir -p ~/.kube
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
-          # Test connection with explicit token refresh
-          aws eks get-token --cluster-name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }} > /dev/null
-          kubectl cluster-info
 
       - name: Deploy StressApp with Helm
         run: |
